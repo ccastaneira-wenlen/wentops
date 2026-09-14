@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: wentop-postgres
+    environment:
+      POSTGRES_USER: wentop
+      POSTGRES_PASSWORD: wentop_password
+      POSTGRES_DB: wentop_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - wentop-pgdata:/var/lib/postgresql/data
+
+volumes:
+  wentop-pgdata:

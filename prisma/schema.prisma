@@ -1,0 +1,100 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                 String    @id @default(cuid())
+  email              String    @unique
+  password           String
+  name               String
+  role               String    @default("OPERATOR") // ADMIN, OPERATOR
+  mustChangePassword Boolean   @default(true)
+  securityAnswer     String?   // Respuesta a la pregunta de seguridad
+  wentops            Wentop[]
+  comments           Comment[]
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model Wentop {
+  id               Int      @id @default(autoincrement())
+  date             DateTime // Fecha del reporte
+  observerName     String // Nombre y Apellido del observador
+  observerSector   String // ¿A que sector pertenece Usted?
+  observedSector   String // Sector al que pertenece la observación
+  place            String // Lugar (Pozo, locación, sitio)
+  type             String // Tipo de tarjeta (Detención de tareas, Condición insegura, etc)
+  typeDetails      String? // Detalles adicionales si aplica
+  observationType  String? // Tipo de observación (Calidad, Ambiente, Seguridad, Otros)
+  observationTypeOther String? // Detalle si Tipo de observación es Otros
+  client           String? // Cliente (YPF, PAE, etc.)
+  clientOther      String? // Detalle si Cliente es OTRO
+  observerSectorOther String? // Detalle si sector propio es Otros
+  description      String // Descripción de la observación
+  immediateActions String // Acciones Inmediatas tomadas
+  recommendations  String // Recomendaciones para eliminar definitivamente el riesgo
+
+  status              String    @default("ABIERTA") // ABIERTA, CERRADA
+  statusJustification String? // Justificación del estado (Abierta/Cerrada)
+  closingAction       String? // Acción de cierre
+  closingDate         DateTime? // Fecha de cierre
+  rating              Int? // Valoración (1-5 estrellas)
+
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  comments  Comment[]
+  evidences Evidence[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  content   String
+  wentopId  Int
+  wentop    Wentop   @relation(fields: [wentopId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+}
+
+model Evidence {
+  id        String   @id @default(cuid())
+  url       String
+  wentopId  Int
+  wentop    Wentop   @relation(fields: [wentopId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+}
+
+model LegacyWentop {
+  id               Int       @id @default(autoincrement())
+  createdAt        DateTime  @default(now())   // Marca temporal del Forms
+  date             DateTime?                   // Fecha del reporte
+  observerName     String                      // Nombre y Apellido del observador
+  place            String?                     // Lugar (Pozo, locación, sitio)
+  client           String?                     // Cliente
+  observedSector   String?                     // Sector al que pertenece la observación
+  type             String?                     // Tipo de tarjeta
+  observationType  String?                     // Calidad / Seguridad y Salud / Medio Ambiente (concatenado)
+  description      String?                     // Descripción de la observación
+  immediateActions String?                     // Acciones Inmediatas tomadas
+  recommendations  String?                     // Recomendaciones
+  status           String    @default("Abierta") // Abierta / Cerrada
+  statusJustification String?                  // Justificación
+  closingAction    String?                      // Acción de cierre (del Forms o del admin)
+  closingDate      DateTime?                    // Fecha de cierre
+  adminComment     String?                      // Comentario adicional del admin al cerrar
+  adminClosedAt    DateTime?                    // Cuando el admin la procesó
+}
