@@ -133,10 +133,20 @@ export default function Login() {
     <div className="container" style={{ maxWidth: '500px', marginTop: '10vh' }}>
       <div className="glass-card">
         <div className="text-center mb-8">
-          <h1 className="text-gradient-red" style={{ fontSize: '2rem' }}>
-            <span className="logo-w">W</span>ENTOP
+          <img 
+            src="/logo.jpg" 
+            alt="Wenlen S.A." 
+            style={{ height: '48px', objectFit: 'contain', margin: '0 auto 16px' }}
+          />
+          <h1 className="text-gradient-red" style={{ fontSize: '2rem', marginBottom: '8px' }}>
+            WENTOP
           </h1>
-          <p style={{ color: 'var(--text-secondary)' }}>
+          {view === "login" && (
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '16px', lineHeight: 1.4, padding: '0 10px' }}>
+              Tarjeta de Observación Preventiva para la gestión de riesgos y mejoras en el ámbito de trabajo.
+            </p>
+          )}
+          <p style={{ color: 'var(--text-primary)', fontWeight: '600' }}>
             {view === "login" ? "Ingreso al portal" : view === "change-password" ? "Cambio de contraseña" : "Recuperar contraseña"}
           </p>
         </div>
