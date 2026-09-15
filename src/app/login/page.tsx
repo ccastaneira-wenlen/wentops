@@ -168,7 +168,9 @@ export default function Login() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Contraseña</label>
+              <label className="form-label">
+                Contraseña <span style={{ fontWeight: 'normal', color: 'var(--text-secondary)' }}>(wentop si es tu primera vez)</span>
+              </label>
               <input 
                 type="password" 
                 className="form-input" 
