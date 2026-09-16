@@ -45,20 +45,23 @@ export async function DELETE(request: Request) {
 
   await prisma.wentop.delete({ where: { id } });
 
-  // After deletion, check if table is now empty and reset autoincrement sequence
-  const remaining = await prisma.wentop.count();
-  if (remaining === 0) {
-    try {
-      await prisma.$executeRawUnsafe(
-        `ALTER SEQUENCE "Wentop_id_seq" RESTART WITH 1;`
+  // Re-sync autoincrement sequence so the next ID always continues from the highest existing ID
+  try {
+    await prisma.$executeRawUnsafe(`
+      SELECT setval(
+        '"Wentop_id_seq"',
+        COALESCE((SELECT MAX(id) FROM "Wentop"), 1),
+        (SELECT COUNT(*) > 0 FROM "Wentop")
       );
-    } catch {
-      try {
-        await prisma.$executeRawUnsafe(
-          `UPDATE sqlite_sequence SET seq = 0 WHERE name = 'Wentop'`
-        );
-      } catch {}
-    }
+    `);
+  } catch {
+    try {
+      const maxId = await prisma.wentop.aggregate({ _max: { id: true } });
+      const nextSeq = maxId._max.id || 0;
+      await prisma.$executeRawUnsafe(
+        `UPDATE sqlite_sequence SET seq = ${nextSeq} WHERE name = 'Wentop'`
+      );
+    } catch {}
   }
 
   return NextResponse.json({ success: true });

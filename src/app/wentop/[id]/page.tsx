@@ -64,7 +64,7 @@ export default async function WentopDetail({ params }: { params: Promise<{ id: s
           </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-          {(isOwner || isAdmin) && (
+          {(isOwner || isAdmin) && wentop.status === "ABIERTA" && (
             <a href={`/edit/${wentop.id}`} className="btn btn-secondary" style={{ padding: "4px 8px", fontSize: "0.7rem", color: "var(--text-primary)" }}>
               ✏️ Editar
             </a>
