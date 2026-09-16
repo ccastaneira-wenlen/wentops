@@ -177,10 +177,13 @@ export default async function WentopDetail({ params }: { params: Promise<{ id: s
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
               {wentop.evidences.map((ev: any) => {
                 const urlLower = ev.url.toLowerCase();
-                const isVideo = urlLower.endsWith(".mp4") || urlLower.endsWith(".mov") || urlLower.endsWith(".webm") || urlLower.endsWith(".mkv");
-                const isPdf = urlLower.endsWith(".pdf");
-                const isDoc = urlLower.endsWith(".doc") || urlLower.endsWith(".docx") || urlLower.endsWith(".xls") || urlLower.endsWith(".xlsx") || urlLower.endsWith(".ppt") || urlLower.endsWith(".pptx") || urlLower.endsWith(".txt");
-                const fileName = ev.url.split("/").pop() || "Archivo";
+                const isVideo = urlLower.endsWith(".mp4") || urlLower.endsWith(".mov") || urlLower.endsWith(".webm") || urlLower.endsWith(".mkv") || urlLower.startsWith("data:video/");
+                const isPdf = urlLower.endsWith(".pdf") || urlLower.startsWith("data:application/pdf");
+                const isDoc = urlLower.endsWith(".doc") || urlLower.endsWith(".docx") || urlLower.endsWith(".xls") || urlLower.endsWith(".xlsx") || urlLower.endsWith(".ppt") || urlLower.endsWith(".pptx") || urlLower.endsWith(".txt") || urlLower.startsWith("data:application/");
+                const fileName = ev.url.startsWith("data:")
+                  ? (decodeURIComponent(ev.url.match(/name=([^;]+)/)?.[1] || "Archivo adjunto"))
+                  : (ev.url.split("/").pop() || "Archivo");
+                const viewUrl = `/api/evidence/${ev.id}`;
 
                 if (isVideo) {
                   return (
@@ -190,7 +193,7 @@ export default async function WentopDetail({ params }: { params: Promise<{ id: s
                         controls 
                         style={{ width: "100%", maxHeight: "280px", borderRadius: "var(--radius-sm)", background: "#000" }} 
                       />
-                      <a href={ev.url} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: "6px", fontSize: "0.75rem", color: "var(--text-secondary)", textDecoration: "none" }}>
+                      <a href={viewUrl} target="_blank" rel="noreferrer" style={{ display: "block", marginTop: "6px", fontSize: "0.75rem", color: "var(--text-secondary)", textDecoration: "none" }}>
                         🎥 Abrir video en pestaña nueva
                       </a>
                     </div>
@@ -199,7 +202,7 @@ export default async function WentopDetail({ params }: { params: Promise<{ id: s
 
                 if (isPdf || isDoc) {
                   return (
-                    <a key={ev.id} href={ev.url} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>
+                    <a key={ev.id} href={viewUrl} target="_blank" rel="noreferrer" style={{ textDecoration: "none", display: "block" }}>
                       <div style={{ background: "var(--bg-secondary)", padding: "20px 10px", textAlign: "center", borderRadius: "var(--radius-sm)", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", border: "1px solid var(--border-color)" }}>
                         <span style={{ fontSize: "2rem" }}>{isPdf ? "📄" : "📝"}</span>
                         <span style={{ fontSize: "0.75rem", color: "var(--text-primary)", marginTop: "8px", fontWeight: "600", wordBreak: "break-all" }}>{fileName}</span>
@@ -211,7 +214,7 @@ export default async function WentopDetail({ params }: { params: Promise<{ id: s
 
                 // Default is image
                 return (
-                  <a key={ev.id} href={ev.url} target="_blank" rel="noreferrer" style={{ display: "block" }}>
+                  <a key={ev.id} href={viewUrl} target="_blank" rel="noreferrer" style={{ display: "block" }}>
                     <img 
                       src={ev.url} 
                       alt="Evidencia" 

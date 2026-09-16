@@ -88,8 +88,10 @@ export async function GET(request: Request) {
 
   for (const w of wentops) {
     for (const ev of w.evidences) {
-      const fullUrl = `${baseUrl}${ev.url}`;
-      const filename = path.basename(ev.url);
+      const fullUrl = ev.url.startsWith("data:") ? `${baseUrl}/api/evidence/${ev.id}` : `${baseUrl}${ev.url}`;
+      const filename = ev.url.startsWith("data:")
+        ? (decodeURIComponent(ev.url.match(/name=([^;]+)/)?.[1] || `evidencia-${ev.id}`))
+        : path.basename(ev.url);
       const rowIndex = photoAoA.length; // 0-based row in aoa
 
       photoAoA.push([
@@ -102,12 +104,20 @@ export async function GET(request: Request) {
 
       // Try to load image for embedding
       try {
-        const filePath = path.join(process.cwd(), "public", ev.url);
-        const ext = path.extname(ev.url).toLowerCase();
-        const isImage = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext);
-        if (isImage && fs.existsSync(filePath)) {
-          const imgBuffer = fs.readFileSync(filePath);
-          imageBuffers.push({ row: rowIndex, col: 5, buf: imgBuffer, ext: ext.replace(".", "") });
+        if (ev.url.startsWith("data:image/")) {
+          const base64Data = ev.url.split(",")[1];
+          const extMatch = ev.url.match(/data:image\/([^;]+)/);
+          const ext = extMatch ? extMatch[1] : "png";
+          const imgBuffer = Buffer.from(base64Data, "base64");
+          imageBuffers.push({ row: rowIndex, col: 5, buf: imgBuffer, ext });
+        } else {
+          const filePath = path.join(process.cwd(), "public", ev.url);
+          const ext = path.extname(ev.url).toLowerCase();
+          const isImage = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext);
+          if (isImage && fs.existsSync(filePath)) {
+            const imgBuffer = fs.readFileSync(filePath);
+            imageBuffers.push({ row: rowIndex, col: 5, buf: imgBuffer, ext: ext.replace(".", "") });
+          }
         }
       } catch {
         // skip

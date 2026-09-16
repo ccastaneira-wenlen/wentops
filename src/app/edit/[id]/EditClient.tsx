@@ -107,6 +107,47 @@ export default function EditClient({ initialData }: { initialData: any }) {
     setSelectedFiles(prev => prev.filter((_, i) => i !== indexToRemove));
   };
 
+  const compressImage = async (file: File): Promise<File> => {
+    if (!file.type.startsWith("image/")) return file;
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const MAX_DIM = 1600;
+          let { width, height } = img;
+          if (width > height && width > MAX_DIM) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else if (height > MAX_DIM) {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx?.drawImage(img, 0, 0, width, height);
+          canvas.toBlob(
+            (blob) => {
+              if (blob && blob.size < file.size) {
+                resolve(new File([blob], file.name, { type: "image/jpeg" }));
+              } else {
+                resolve(file);
+              }
+            },
+            "image/jpeg",
+            0.8
+          );
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setFileError("");
@@ -115,11 +156,12 @@ export default function EditClient({ initialData }: { initialData: any }) {
     const formData = new FormData(e.currentTarget);
     formData.append("id", initialData.id.toString());
 
-    // Append newly selected files
+    // Append newly selected files (compressed if images)
     formData.delete("evidence");
-    selectedFiles.forEach(file => {
-      formData.append("evidence", file);
-    });
+    for (const file of selectedFiles) {
+      const optimized = await compressImage(file);
+      formData.append("evidence", optimized);
+    }
 
     try {
       const result = await updateWentop(formData);
@@ -127,6 +169,8 @@ export default function EditClient({ initialData }: { initialData: any }) {
         alert("¡WENTOP actualizada con éxito!");
         router.push(`/wentop/${initialData.id}`);
         router.refresh();
+      } else {
+        alert("Error al actualizar: " + (result.error || "Por favor verifica los datos ingresados"));
       }
     } catch (error: any) {
       alert("Error al actualizar: " + error.message);

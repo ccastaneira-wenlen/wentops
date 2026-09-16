@@ -83,8 +83,10 @@ export async function deleteWentop(id: number) {
     const path = await import("path");
     for (const ev of wentop.evidences) {
       try {
-        const filePath = path.join(process.cwd(), "public", ev.url);
-        await fs.unlink(filePath);
+        if (!ev.url.startsWith("data:")) {
+          const filePath = path.join(process.cwd(), "public", ev.url);
+          await fs.unlink(filePath);
+        }
       } catch {
         // ignore if file doesn't exist
       }
@@ -96,10 +98,17 @@ export async function deleteWentop(id: number) {
   // After deletion, check if table is now empty and reset the autoincrement sequence
   const remaining = await prisma.wentop.count();
   if (remaining === 0) {
-    // Reset SQLite autoincrement sequence so next record starts at #1
-    await prisma.$executeRawUnsafe(
-      `UPDATE sqlite_sequence SET seq = 0 WHERE name = 'Wentop'`
-    );
+    try {
+      await prisma.$executeRawUnsafe(
+        `ALTER SEQUENCE "Wentop_id_seq" RESTART WITH 1;`
+      );
+    } catch {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE sqlite_sequence SET seq = 0 WHERE name = 'Wentop'`
+        );
+      } catch {}
+    }
   }
 
   revalidatePath("/dashboard");

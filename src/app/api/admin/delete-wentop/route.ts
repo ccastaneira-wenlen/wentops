@@ -34,8 +34,10 @@ export async function DELETE(request: Request) {
 
   for (const ev of wentop.evidences) {
     try {
-      const filePath = path.join(process.cwd(), "public", ev.url);
-      await fs.unlink(filePath);
+      if (!ev.url.startsWith("data:")) {
+        const filePath = path.join(process.cwd(), "public", ev.url);
+        await fs.unlink(filePath);
+      }
     } catch {
       // ignore if file doesn't exist
     }
@@ -46,9 +48,17 @@ export async function DELETE(request: Request) {
   // After deletion, check if table is now empty and reset autoincrement sequence
   const remaining = await prisma.wentop.count();
   if (remaining === 0) {
-    await prisma.$executeRawUnsafe(
-      `UPDATE sqlite_sequence SET seq = 0 WHERE name = 'Wentop'`
-    );
+    try {
+      await prisma.$executeRawUnsafe(
+        `ALTER SEQUENCE "Wentop_id_seq" RESTART WITH 1;`
+      );
+    } catch {
+      try {
+        await prisma.$executeRawUnsafe(
+          `UPDATE sqlite_sequence SET seq = 0 WHERE name = 'Wentop'`
+        );
+      } catch {}
+    }
   }
 
   return NextResponse.json({ success: true });
