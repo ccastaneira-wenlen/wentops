@@ -8,6 +8,7 @@ const SECTOR_COLORS: Record<string, string> = {
   "Fractura": "#e60000",
   "Well Testing": "#ff6600",
   "Wireline": "#ffcc00",
+  "Wireline/Slickline": "#ffcc00",
   "Mantenimiento": "#3399ff",
   "SBDP": "#9966ff",
   "Administración": "#00cc66",

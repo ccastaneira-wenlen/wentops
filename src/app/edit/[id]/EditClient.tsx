@@ -23,7 +23,7 @@ const OBSERVER_SECTORS = [
 const OBSERVED_SECTORS = [
   "Fractura",
   "Well Testing",
-  "Wireline",
+  "Wireline/Slickline",
   "SBDP",
   "Administración",
   "Mantenimiento",
@@ -270,7 +270,11 @@ export default function EditClient({ initialData }: { initialData: any }) {
             <select 
               name="observedSector" 
               className="form-select" 
-              defaultValue={initialData.observedSector}
+              defaultValue={
+                initialData.observedSector === "Wireline" || initialData.observedSector === "Wire line"
+                  ? "Wireline/Slickline"
+                  : initialData.observedSector
+              }
               required
             >
               <option value="">Seleccione sector observado...</option>

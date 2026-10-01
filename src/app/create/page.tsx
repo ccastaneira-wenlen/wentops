@@ -24,7 +24,7 @@ const OBSERVER_SECTORS = [
 const OBSERVED_SECTORS = [
   "Fractura",
   "Well Testing",
-  "Wireline",
+  "Wireline/Slickline",
   "SBDP",
   "Administración",
   "Mantenimiento",
