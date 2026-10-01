@@ -8,7 +8,7 @@ const OBSERVER_SECTORS = [
   "MASS",
   "Calidad",
   "Well Testing",
-  "Wire line",
+  "Wireline/Slickline",
   "Fractura",
   "SBDP",
   "Mantenimiento",
@@ -73,7 +73,9 @@ export default function EditClient({ initialData }: { initialData: any }) {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState("");
 
-  const [observerSector, setObserverSector] = useState(initialData.observerSector || "");
+  const [observerSector, setObserverSector] = useState(
+    initialData.observerSector === "Wire line" ? "Wireline/Slickline" : (initialData.observerSector || "")
+  );
   const [client, setClient] = useState(initialData.client || "");
   const [observationType, setObservationType] = useState(initialData.observationType || "");
   const [status, setStatus] = useState<"ABIERTA" | "CERRADA">(initialData.status === "CERRADA" ? "CERRADA" : "ABIERTA");

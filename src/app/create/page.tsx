@@ -9,7 +9,7 @@ const OBSERVER_SECTORS = [
   "MASS",
   "Calidad",
   "Well Testing",
-  "Wire line",
+  "Wireline/Slickline",
   "Fractura",
   "SBDP",
   "Mantenimiento",
