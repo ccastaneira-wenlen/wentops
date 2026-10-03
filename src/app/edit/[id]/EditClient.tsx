@@ -66,12 +66,15 @@ const OBSERVATION_TYPES = [
   "Otros",
 ];
 
-export default function EditClient({ initialData }: { initialData: any }) {
+export default function EditClient({ initialData, isAdmin }: { initialData: any; isAdmin?: boolean }) {
   const router = useRouter();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [fileError, setFileError] = useState("");
+
+  const [rating, setRating] = useState<number>(initialData.rating || 0);
+  const [hoverRating, setHoverRating] = useState<number>(0);
 
   const [observerSector, setObserverSector] = useState(
     initialData.observerSector === "Wire line" ? "Wireline/Slickline" : (initialData.observerSector || "")
@@ -476,13 +479,13 @@ export default function EditClient({ initialData }: { initialData: any }) {
                 Datos de Cierre
               </div>
               <div className="form-group">
-                <label className="form-label" style={{ fontSize: "0.85rem" }}>Acción de cierre</label>
+                <label className="form-label" style={{ fontSize: "0.85rem" }}>Acción de cierre / Comentarios</label>
                 <textarea 
                   name="closingAction" 
                   defaultValue={initialData.closingAction || ""}
                   className="form-textarea" 
                   placeholder="Detalle de la acción final de cierre tomada..." 
-                  rows={2}
+                  rows={3}
                 ></textarea>
               </div>
               <div className="form-group">
@@ -494,6 +497,49 @@ export default function EditClient({ initialData }: { initialData: any }) {
                   className="form-input" 
                 />
               </div>
+
+              {/* Calificación para admin */}
+              {isAdmin && (
+                <div className="form-group" style={{ borderTop: "1px solid rgba(0,204,102,0.2)", paddingTop: "12px" }}>
+                  <label className="form-label" style={{ fontSize: "0.85rem", marginBottom: "8px", display: "block" }}>
+                    ⭐ Calificación del reporte (1 a 5 estrellas)
+                  </label>
+                  <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setRating(star)}
+                        onMouseEnter={() => setHoverRating(star)}
+                        onMouseLeave={() => setHoverRating(0)}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          fontSize: "1.8rem",
+                          color:
+                            star <= (hoverRating || rating)
+                              ? "var(--warning)"
+                              : "var(--border-color)",
+                          transition: "all 0.15s",
+                          padding: "0 2px",
+                        }}
+                      >
+                        ★
+                      </button>
+                    ))}
+                    {rating > 0 && (
+                      <span style={{ marginLeft: "8px", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
+                        {rating === 1 ? "Básico" : rating === 2 ? "Regular" : rating === 3 ? "Bueno" : rating === 4 ? "Muy bueno" : "Excelente"} ({rating}★)
+                      </span>
+                    )}
+                  </div>
+                  <input type="hidden" name="rating" value={rating} />
+                  <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", marginTop: "4px", marginBottom: 0 }}>
+                    Esta valoración suma puntos al operador en el ranking mensual.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 

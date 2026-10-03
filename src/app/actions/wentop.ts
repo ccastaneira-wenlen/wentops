@@ -184,6 +184,16 @@ export async function updateWentop(formData: FormData) {
       }
     }
 
+    const isAdmin = (session.user as any).role === "ADMIN";
+    const ratingStr = formData.get("rating") as string;
+    const parsedRating = ratingStr ? parseInt(ratingStr, 10) : null;
+    let rating = wentopToUpdate.rating;
+    if (status === "ABIERTA") {
+      rating = null;
+    } else if (isAdmin && parsedRating && parsedRating >= 1 && parsedRating <= 5) {
+      rating = parsedRating;
+    }
+
     await prisma.wentop.update({
       where: { id },
       data: {
@@ -205,6 +215,7 @@ export async function updateWentop(formData: FormData) {
         statusJustification,
         closingAction,
         closingDate,
+        rating,
       }
     });
 

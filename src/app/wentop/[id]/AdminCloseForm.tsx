@@ -7,12 +7,18 @@ import { useRouter } from "next/navigation";
 export default function AdminCloseForm({
   wentopId,
   currentStatus = "ABIERTA",
+  initialRating = 0,
+  initialClosingAction = "",
 }: {
   wentopId: string;
   currentStatus?: string;
+  initialRating?: number | null;
+  initialClosingAction?: string | null;
 }) {
+  const isAlreadyRated = (initialRating || 0) > 0;
+  const [isOpen, setIsOpen] = useState(!isAlreadyRated);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(initialRating || 0);
   const [hoverRating, setHoverRating] = useState(0);
   const router = useRouter();
 
@@ -33,6 +39,9 @@ export default function AdminCloseForm({
     try {
       const result = await closeWentop(formData);
       if (result.success) {
+        if (isAlreadyRated) {
+          setIsOpen(false);
+        }
         router.refresh();
       }
     } catch (error: any) {
@@ -41,23 +50,75 @@ export default function AdminCloseForm({
     }
   };
 
+  if (isAlreadyRated && !isOpen) {
+    return (
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="btn btn-secondary"
+        style={{
+          width: "100%",
+          padding: "10px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: "8px",
+          fontSize: "0.85rem",
+          marginTop: "10px",
+          color: "var(--text-primary)"
+        }}
+      >
+        ✏️ Modificar calificación y comentarios de cierre
+      </button>
+    );
+  }
+
+  const title = isAlreadyRated
+    ? "✏️ Modificar Calificación y Comentarios"
+    : isAlreadyClosed
+    ? "⭐ Calificar Observación"
+    : "Cerrar Observación";
+
+  const subtitle = isAlreadyRated
+    ? "Actualizá la valoración de estrellas o la acción de cierre/comentarios."
+    : isAlreadyClosed
+    ? "Esta tarjeta fue cerrada por el empleado. Agregá la acción de cierre y tu valoración."
+    : "Complete la acción de cierre y evalúe el reporte del operador.";
+
   return (
     <div
       className="glass-card"
       style={{
-        borderTop: isAlreadyClosed
+        borderTop: isAlreadyRated
+          ? "3px solid var(--warning)"
+          : isAlreadyClosed
           ? "3px solid var(--warning)"
           : "3px solid var(--accent-red)",
-        marginTop: "8px",
+        marginTop: "12px",
       }}
     >
-      <h3 style={{ fontSize: "1.1rem", marginBottom: "4px" }}>
-        {isAlreadyClosed ? "⭐ Calificar Observación" : "Cerrar Observación"}
-      </h3>
-      <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: "20px" }}>
-        {isAlreadyClosed
-          ? "Esta tarjeta fue cerrada por el empleado. Agregá la acción de cierre y tu valoración."
-          : "Complete la acción de cierre y evalúe el reporte del operador."}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "4px" }}>
+        <h3 style={{ fontSize: "1.1rem", margin: 0 }}>
+          {title}
+        </h3>
+        {isAlreadyRated && (
+          <button
+            type="button"
+            onClick={() => setIsOpen(false)}
+            style={{
+              background: "none",
+              border: "none",
+              color: "var(--text-secondary)",
+              fontSize: "0.85rem",
+              cursor: "pointer",
+            }}
+          >
+            ✕ Cerrar
+          </button>
+        )}
+      </div>
+      <p style={{ color: "var(--text-secondary)", fontSize: "0.85rem", marginBottom: "18px" }}>
+        {subtitle}
       </p>
 
       <form onSubmit={handleSubmit}>
@@ -65,6 +126,7 @@ export default function AdminCloseForm({
           <label className="form-label">Acción de Cierre / Comentarios *</label>
           <textarea
             name="closingAction"
+            defaultValue={initialClosingAction || ""}
             className="form-textarea"
             placeholder="Describe qué se hizo para resolver esta observación..."
             required
@@ -120,7 +182,7 @@ export default function AdminCloseForm({
                   ? "Bueno"
                   : rating === 4
                   ? "Muy bueno"
-                  : "Excelente"}
+                  : "Excelente"} ({rating}★)
               </span>
             )}
           </div>
@@ -135,18 +197,33 @@ export default function AdminCloseForm({
           </p>
         </div>
 
-        <button
-          type="submit"
-          className="btn btn-primary"
-          style={{ width: "100%", padding: "12px", marginTop: "8px" }}
-          disabled={isSubmitting}
-        >
-          {isSubmitting
-            ? "⏳ Guardando..."
-            : isAlreadyClosed
-            ? "⭐ Calificar WENTOP"
-            : "✅ Cerrar y Evaluar WENTOP"}
-        </button>
+        <div style={{ display: "flex", gap: "10px", marginTop: "12px" }}>
+          {isAlreadyRated && (
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => setIsOpen(false)}
+              style={{ flex: 1, padding: "12px" }}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </button>
+          )}
+          <button
+            type="submit"
+            className="btn btn-primary"
+            style={{ flex: 2, padding: "12px" }}
+            disabled={isSubmitting}
+          >
+            {isSubmitting
+              ? "⏳ Guardando..."
+              : isAlreadyRated
+              ? "💾 Guardar Cambios"
+              : isAlreadyClosed
+              ? "⭐ Calificar WENTOP"
+              : "✅ Cerrar y Evaluar WENTOP"}
+          </button>
+        </div>
       </form>
     </div>
   );

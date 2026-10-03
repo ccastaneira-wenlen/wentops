@@ -17,8 +17,10 @@ export default async function EditWentop({ params }: { params: Promise<{ id: str
 
   if (!wentop) redirect("/my-wentops");
 
+  const isAdmin = (session.user as any).role === "ADMIN";
   const isOwner = wentop.userId === (session.user as any).id;
-  if (!isOwner || wentop.status !== "ABIERTA") redirect("/my-wentops");
+  const canEdit = isAdmin || (isOwner && wentop.status === "ABIERTA");
+  if (!canEdit) redirect("/my-wentops");
 
   // We need to pass the initial data to a client component to handle the form
   const serializedWentop = {
@@ -27,5 +29,5 @@ export default async function EditWentop({ params }: { params: Promise<{ id: str
     closingDate: wentop.closingDate ? wentop.closingDate.toISOString().split('T')[0] : '',
   };
 
-  return <EditClient initialData={serializedWentop} />;
+  return <EditClient initialData={serializedWentop} isAdmin={isAdmin} />;
 }

@@ -271,13 +271,23 @@ export default function AdminClient({ wentops }: { wentops: any[] }) {
                       {wt.rating ? "★".repeat(wt.rating) : <span style={{ color: "var(--border-color)" }}>—</span>}
                     </td>
                     <td style={{ padding: "14px 20px", textAlign: "center" }}>
-                      <a
-                        href={`/wentop/${wt.id}`}
-                        className="btn btn-secondary"
-                        style={{ padding: "6px 14px", fontSize: "0.82rem", whiteSpace: "nowrap" }}
-                      >
-                        {wt.status === "ABIERTA" ? "Revisar →" : "Ver Detalle"}
-                      </a>
+                      <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                        <a
+                          href={`/wentop/${wt.id}`}
+                          className="btn btn-secondary"
+                          style={{ padding: "6px 12px", fontSize: "0.82rem", whiteSpace: "nowrap" }}
+                        >
+                          {wt.status === "ABIERTA" ? "Revisar →" : "Ver Detalle"}
+                        </a>
+                        <a
+                          href={`/edit/${wt.id}`}
+                          className="btn btn-secondary"
+                          style={{ padding: "6px 10px", fontSize: "0.82rem", whiteSpace: "nowrap" }}
+                          title="Editar WENTOP"
+                        >
+                          ✏️
+                        </a>
+                      </div>
                     </td>
                   </tr>
                 ))}
