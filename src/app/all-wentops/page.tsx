@@ -24,14 +24,30 @@ export default async function AllWentops() {
     }
   });
 
-  // Real ranking: aggregate stars per user from closed wentops
+  // Monthly ranking: aggregate stars per user from closed wentops of the current month
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const startOfMonth = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
+  const startOfNextMonth = new Date(Date.UTC(year, month + 1, 1, 0, 0, 0, 0));
+
+  const monthNameRaw = now.toLocaleString("es-ES", { month: "long" });
+  const currentMonthName = monthNameRaw.charAt(0).toUpperCase() + monthNameRaw.slice(1);
+
   const rankingData = await prisma.wentop.groupBy({
     by: ["userId"],
-    where: { status: "CERRADA", rating: { not: null } },
+    where: { 
+      status: "CERRADA", 
+      rating: { not: null },
+      date: {
+        gte: startOfMonth,
+        lt: startOfNextMonth,
+      },
+    },
     _sum: { rating: true },
     _count: { id: true },
     orderBy: { _sum: { rating: "desc" } },
-    take: 10,
+    take: 3,
   });
 
   // Fetch user names for ranking
@@ -96,51 +112,74 @@ export default async function AllWentops() {
           </div>
         )}
 
-        {/* Global Ranking */}
-        {rankingUsers.length > 0 && (
-          <div className="glass-card" style={{ padding: "20px 16px", marginBottom: "20px" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
-              <h3 style={{ fontSize: "1rem", margin: 0 }}>🏆 Ranking de Observadores</h3>
-              <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Por estrellas obtenidas</span>
-            </div>
-            {rankingUsers.map((user, idx) => (
-              <div key={user.id} style={{
-                display: "flex",
-                alignItems: "center",
-                padding: "10px 12px",
-                borderRadius: "var(--radius-md)",
-                marginBottom: idx < rankingUsers.length - 1 ? "6px" : "0",
-                background: user.isMe ? "rgba(230,0,0,0.08)" : "transparent",
-                border: user.isMe ? "1px solid rgba(230,0,0,0.25)" : "1px solid transparent",
-              }}>
-                <div style={{
-                  width: "28px", height: "28px", borderRadius: "50%", flexShrink: 0,
-                  background: idx === 0 ? "#ffcc00" : idx === 1 ? "#c0c0c0" : idx === 2 ? "#cd7f32" : "var(--bg-secondary)",
-                  display: "flex", alignItems: "center", justifyContent: "center",
-                  fontWeight: "800", fontSize: "0.85rem",
-                  color: idx < 3 ? "#000" : "var(--text-secondary)"
-                }}>
-                  {idx + 1}
-                </div>
-                <div style={{ flex: 1, marginLeft: "10px", overflow: "hidden" }}>
-                  <div style={{
-                    fontWeight: user.isMe ? "700" : "500",
-                    fontSize: "0.9rem",
-                    whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
-                  }}>
-                    {user.isMe ? `Tú (${user.name})` : user.name}
-                  </div>
-                  <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                    {user.count} tarjeta{user.count !== 1 ? "s" : ""} cerrada{user.count !== 1 ? "s" : ""}
-                  </div>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--warning)", fontWeight: "700", fontSize: "0.9rem" }}>
-                  {user.stars} <span style={{ fontSize: "1.1rem" }}>★</span>
-                </div>
-              </div>
-            ))}
+        {/* Global Monthly Ranking / Podium */}
+        <div className="glass-card" style={{ padding: "20px 16px", marginBottom: "20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: rankingUsers.length > 0 ? "14px" : "0" }}>
+            <h3 style={{ fontSize: "1rem", margin: 0 }}>🏆 Ranking de {currentMonthName}</h3>
+            <span style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>Podio del mes</span>
           </div>
-        )}
+
+          {rankingUsers.length === 0 ? (
+            <p style={{ fontSize: "0.85rem", color: "var(--text-secondary)", marginTop: "10px", marginBottom: 0 }}>
+              Aún no hay observaciones calificadas en {monthNameRaw}. ¡Sé el primero en sumar estrellas para el podio!
+            </p>
+          ) : (
+            rankingUsers.map((user, idx) => {
+              const medal = idx === 0 ? "🥇" : idx === 1 ? "🥈" : "🥉";
+              const podiumBg = idx === 0 
+                ? "linear-gradient(135deg, #FFE066 0%, #FFB703 100%)" 
+                : idx === 1 
+                ? "linear-gradient(135deg, #E0E0E0 0%, #B0B0B0 100%)" 
+                : "linear-gradient(135deg, #E0A96D 0%, #CD7F32 100%)";
+
+              return (
+                <div key={user.id} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  padding: "10px 12px",
+                  borderRadius: "var(--radius-md)",
+                  marginBottom: idx < rankingUsers.length - 1 ? "8px" : "0",
+                  background: user.isMe ? "rgba(230,0,0,0.08)" : "rgba(255,255,255,0.03)",
+                  border: user.isMe ? "1px solid rgba(230,0,0,0.3)" : "1px solid var(--border-light)",
+                }}>
+                  <div style={{
+                    width: "32px", height: "32px", borderRadius: "50%", flexShrink: 0,
+                    background: podiumBg,
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    fontWeight: "800", fontSize: "1rem",
+                    boxShadow: "0 2px 8px rgba(0,0,0,0.3)"
+                  }}>
+                    {medal}
+                  </div>
+                  <div style={{ flex: 1, marginLeft: "12px", overflow: "hidden" }}>
+                    <div style={{
+                      fontWeight: user.isMe ? "700" : "600",
+                      fontSize: "0.9rem",
+                      whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                      color: user.isMe ? "#fff" : "var(--text-primary)"
+                    }}>
+                      {user.isMe ? `Tú (${user.name})` : user.name}
+                      <span style={{ 
+                        marginLeft: "8px", 
+                        fontSize: "0.72rem", 
+                        fontWeight: "600", 
+                        color: idx === 0 ? "#FFB703" : idx === 1 ? "#C0C0C0" : "#CD7F32" 
+                      }}>
+                        {idx + 1}º Puesto
+                      </span>
+                    </div>
+                    <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", marginTop: "1px" }}>
+                      {user.count} tarjeta{user.count !== 1 ? "s" : ""} cerrada{user.count !== 1 ? "s" : ""}
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: "4px", color: "var(--warning)", fontWeight: "800", fontSize: "0.95rem" }}>
+                    {user.stars} <span style={{ fontSize: "1.1rem" }}>★</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
 
         {/* Wentop cards - mobile optimized */}
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
