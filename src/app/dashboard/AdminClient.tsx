@@ -22,6 +22,17 @@ function getColor(sector: string) {
   return SECTOR_COLORS[sector] || "#a0a0a0";
 }
 
+function getShortSector(sector: string) {
+  if (!sector) return "—";
+  if (sector.includes("Tercera compañia") || sector.includes("Tercera compania")) return "3ra Cía.";
+  if (sector === "Wireline/Slickline") return "Wireline/Slick.";
+  if (sector === "Administración" || sector === "Administracion") return "Admin.";
+  if (sector === "Mantenimiento") return "Mantenim.";
+  if (sector.includes("Directorio") || sector.includes("Gerencia")) return "Gerencia";
+  if (sector.length > 18) return sector.slice(0, 16) + "...";
+  return sector;
+}
+
 export default function AdminClient({ wentops }: { wentops: any[] }) {
   const router = useRouter();
   const [isGranting, setIsGranting] = useState(false);
@@ -151,19 +162,18 @@ export default function AdminClient({ wentops }: { wentops: any[] }) {
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.85rem" }}>
               <thead>
                 <tr style={{ background: "rgba(0,0,0,0.3)", borderBottom: "2px solid var(--border-color)" }}>
-                  <th style={{ padding: "14px 20px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>ID</th>
-                  <th style={{ padding: "14px 10px", textAlign: "center", width: "40px" }}></th>
-                  <th style={{ padding: "14px 16px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>Fecha</th>
-                  <th style={{ padding: "14px 16px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Observador</th>
-                  <th style={{ padding: "14px 16px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Cliente / Lugar</th>
-                  <th style={{ padding: "14px 16px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Sector Obs.</th>
-                  <th style={{ padding: "14px 16px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tipo</th>
-                  <th style={{ padding: "14px 16px", textAlign: "center", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Estado</th>
-                  <th style={{ padding: "14px 16px", textAlign: "center", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Val.</th>
-                  <th style={{ padding: "14px 20px", textAlign: "center", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Acción</th>
+                  <th style={{ padding: "10px 8px", textAlign: "center", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", width: "45px" }}>ID</th>
+                  <th style={{ padding: "10px 8px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>Acciones</th>
+                  <th style={{ padding: "10px 8px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>Fecha</th>
+                  <th style={{ padding: "10px 8px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Observador</th>
+                  <th style={{ padding: "10px 8px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Cliente / Lugar</th>
+                  <th style={{ padding: "10px 8px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em", whiteSpace: "nowrap" }}>Sector Obs.</th>
+                  <th style={{ padding: "10px 8px", textAlign: "left", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Tipo</th>
+                  <th style={{ padding: "10px 8px", textAlign: "center", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Estado</th>
+                  <th style={{ padding: "10px 8px", textAlign: "center", color: "var(--text-secondary)", fontWeight: "600", fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>Val.</th>
                 </tr>
               </thead>
               <tbody>
@@ -177,117 +187,119 @@ export default function AdminClient({ wentops }: { wentops: any[] }) {
                     onMouseEnter={e => (e.currentTarget.style.background = "rgba(255,255,255,0.03)")}
                     onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                   >
-                    <td style={{ padding: "14px 20px", fontFamily: "monospace", fontWeight: "700", fontSize: "0.85rem", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
+                    <td style={{ padding: "8px 8px", textAlign: "center", fontFamily: "monospace", fontWeight: "700", fontSize: "0.8rem", color: "var(--text-secondary)", whiteSpace: "nowrap" }}>
                       #{wt.id}
                     </td>
-                    <td style={{ padding: "14px 10px", textAlign: "center" }}>
-                      <button 
-                        disabled={deletingId === wt.id}
-                        onClick={async () => {
-                          if (confirm(`¿Estás seguro que deseas eliminar la Wentop #${wt.id}? Esta acción no se puede deshacer.`)) {
-                            setDeletingId(wt.id);
-                            try {
-                              const res = await fetch(`/api/admin/delete-wentop?id=${wt.id}`, {
-                                method: "DELETE",
-                                credentials: "include",
-                              });
-                              const data = await res.json();
-                              if (!res.ok) {
-                                throw new Error(data.error || `HTTP ${res.status}`);
-                              }
-                              router.refresh();
-                            } catch (err: any) {
-                              console.error("Error al eliminar:", err);
-                              alert("Error al eliminar: " + err.message);
-                            } finally {
-                              setDeletingId(null);
-                            }
-                          }
-                        }}
-                        style={{
-                          background: "transparent",
-                          border: "none",
-                          cursor: deletingId === wt.id ? "not-allowed" : "pointer",
-                          fontSize: "1.1rem",
-                          padding: "4px",
-                          opacity: deletingId === wt.id ? 0.4 : 1,
-                          transition: "opacity 0.2s",
-                        }}
-                        title="Eliminar"
-                      >
-                        {deletingId === wt.id ? "⏳" : "🗑️"}
-                      </button>
-                    </td>
-                    <td suppressHydrationWarning style={{ padding: "14px 16px", whiteSpace: "nowrap", color: "var(--text-secondary)", fontSize: "0.85rem" }}>
-                      {new Date(wt.date).toLocaleDateString("es-AR")}
-                    </td>
-                    <td style={{ padding: "14px 16px", maxWidth: "180px" }}>
-                      <div style={{ fontWeight: "500", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {wt.observerName}
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)" }}>
-                        {wt.observerSector === "Otros" && wt.observerSectorOther ? wt.observerSectorOther : wt.observerSector}
-                      </div>
-                    </td>
-                    <td style={{ padding: "14px 16px", maxWidth: "160px" }}>
-                      <div style={{ fontWeight: "600", fontSize: "0.85rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {wt.client === "OTRO" && wt.clientOther ? wt.clientOther : (wt.client || "—")}
-                      </div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        📍 {wt.place}
-                      </div>
-                    </td>
-                    <td style={{ padding: "14px 16px" }}>
-                      <span style={{
-                        display: "inline-block",
-                        padding: "3px 10px",
-                        borderRadius: "9999px",
-                        fontSize: "0.75rem",
-                        fontWeight: "600",
-                        background: `${getColor(wt.observedSector)}20`,
-                        color: getColor(wt.observedSector),
-                        border: `1px solid ${getColor(wt.observedSector)}40`,
-                        whiteSpace: "nowrap",
-                      }}>
-                        {wt.observedSector}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 16px", maxWidth: "200px" }}>
-                      <span style={{ fontSize: "0.88rem", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }}>
-                        {wt.type}
-                      </span>
-                      {wt.observationType && (
-                        <span style={{ fontSize: "0.72rem", color: "var(--info)", display: "block" }}>
-                          {wt.observationType === "Otros" && wt.observationTypeOther ? wt.observationTypeOther : wt.observationType}
-                        </span>
-                      )}
-                    </td>
-                    <td style={{ padding: "14px 16px", textAlign: "center" }}>
-                      <span className={`badge ${wt.status === "ABIERTA" ? "badge-open" : "badge-closed"}`}>
-                        {wt.status}
-                      </span>
-                    </td>
-                    <td style={{ padding: "14px 16px", textAlign: "center", color: "var(--warning)", fontSize: "0.9rem" }}>
-                      {wt.rating ? "★".repeat(wt.rating) : <span style={{ color: "var(--border-color)" }}>—</span>}
-                    </td>
-                    <td style={{ padding: "14px 20px", textAlign: "center" }}>
-                      <div style={{ display: "flex", gap: "6px", justifyContent: "center" }}>
+                    <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
+                      <div style={{ display: "flex", gap: "4px", alignItems: "center" }}>
                         <a
                           href={`/wentop/${wt.id}`}
                           className="btn btn-secondary"
-                          style={{ padding: "6px 12px", fontSize: "0.82rem", whiteSpace: "nowrap" }}
+                          style={{ padding: "3px 8px", fontSize: "0.75rem", whiteSpace: "nowrap" }}
                         >
-                          {wt.status === "ABIERTA" ? "Revisar →" : "Ver Detalle"}
+                          {wt.status === "ABIERTA" ? "Revisar" : "Ver"}
                         </a>
                         <a
                           href={`/edit/${wt.id}`}
                           className="btn btn-secondary"
-                          style={{ padding: "6px 10px", fontSize: "0.82rem", whiteSpace: "nowrap" }}
+                          style={{ padding: "3px 6px", fontSize: "0.75rem", lineHeight: 1 }}
                           title="Editar WENTOP"
                         >
                           ✏️
                         </a>
+                        <button 
+                          disabled={deletingId === wt.id}
+                          onClick={async () => {
+                            if (confirm(`¿Estás seguro que deseas eliminar la Wentop #${wt.id}? Esta acción no se puede deshacer.`)) {
+                              setDeletingId(wt.id);
+                              try {
+                                const res = await fetch(`/api/admin/delete-wentop?id=${wt.id}`, {
+                                  method: "DELETE",
+                                  credentials: "include",
+                                });
+                                const data = await res.json();
+                                if (!res.ok) {
+                                  throw new Error(data.error || `HTTP ${res.status}`);
+                                }
+                                router.refresh();
+                              } catch (err: any) {
+                                console.error("Error al eliminar:", err);
+                                alert("Error al eliminar: " + err.message);
+                              } finally {
+                                setDeletingId(null);
+                              }
+                            }
+                          }}
+                          style={{
+                            background: "transparent",
+                            border: "none",
+                            cursor: deletingId === wt.id ? "not-allowed" : "pointer",
+                            fontSize: "0.95rem",
+                            padding: "2px 4px",
+                            opacity: deletingId === wt.id ? 0.4 : 0.75,
+                            transition: "opacity 0.2s",
+                            lineHeight: 1,
+                          }}
+                          title="Eliminar WENTOP"
+                        >
+                          {deletingId === wt.id ? "⏳" : "🗑️"}
+                        </button>
                       </div>
+                    </td>
+                    <td suppressHydrationWarning style={{ padding: "8px 8px", whiteSpace: "nowrap", color: "var(--text-secondary)", fontSize: "0.8rem" }}>
+                      {new Date(wt.date).toLocaleDateString("es-AR")}
+                    </td>
+                    <td style={{ padding: "8px 8px", maxWidth: "140px" }}>
+                      <div style={{ fontWeight: "500", fontSize: "0.82rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={wt.observerName}>
+                        {wt.observerName}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        {wt.observerSector === "Otros" && wt.observerSectorOther ? wt.observerSectorOther : wt.observerSector}
+                      </div>
+                    </td>
+                    <td style={{ padding: "8px 8px", maxWidth: "130px" }}>
+                      <div style={{ fontWeight: "600", fontSize: "0.8rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={wt.client === "OTRO" && wt.clientOther ? wt.clientOther : (wt.client || "—")}>
+                        {wt.client === "OTRO" && wt.clientOther ? wt.clientOther : (wt.client || "—")}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "var(--text-secondary)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={wt.place}>
+                        📍 {wt.place}
+                      </div>
+                    </td>
+                    <td style={{ padding: "8px 8px", whiteSpace: "nowrap" }}>
+                      <span 
+                        title={wt.observedSector}
+                        style={{
+                          display: "inline-block",
+                          padding: "2px 7px",
+                          borderRadius: "9999px",
+                          fontSize: "0.72rem",
+                          fontWeight: "600",
+                          background: `${getColor(wt.observedSector)}20`,
+                          color: getColor(wt.observedSector),
+                          border: `1px solid ${getColor(wt.observedSector)}40`,
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {getShortSector(wt.observedSector)}
+                      </span>
+                    </td>
+                    <td style={{ padding: "8px 8px", maxWidth: "150px" }}>
+                      <span style={{ fontSize: "0.82rem", fontWeight: "600", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", display: "block" }} title={wt.type}>
+                        {wt.type}
+                      </span>
+                      {wt.observationType && (
+                        <span style={{ fontSize: "0.7rem", color: "var(--info)", display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {wt.observationType === "Otros" && wt.observationTypeOther ? wt.observationTypeOther : wt.observationType}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: "8px 8px", textAlign: "center", whiteSpace: "nowrap" }}>
+                      <span className={`badge ${wt.status === "ABIERTA" ? "badge-open" : "badge-closed"}`} style={{ fontSize: "0.7rem", padding: "2px 6px" }}>
+                        {wt.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: "8px 8px", textAlign: "center", color: "var(--warning)", fontSize: "0.8rem", whiteSpace: "nowrap" }}>
+                      {wt.rating ? "★".repeat(wt.rating) : <span style={{ color: "var(--border-color)" }}>—</span>}
                     </td>
                   </tr>
                 ))}

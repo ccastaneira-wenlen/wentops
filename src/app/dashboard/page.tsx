@@ -27,7 +27,7 @@ export default async function Dashboard() {
   const avgRating = ratedCount > 0 ? (totalRating / ratedCount).toFixed(1) : "—";
 
   return (
-    <div className="container" style={{ paddingTop: "32px", paddingBottom: "48px" }}>
+    <div className="container" style={{ maxWidth: "1400px", paddingTop: "32px", paddingBottom: "48px" }}>
 
       {/* Header */}
       <div style={{ marginBottom: "28px" }}>
