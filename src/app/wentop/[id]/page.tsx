@@ -213,10 +213,13 @@ export default async function WentopDetail({ params }: { params: Promise<{ id: s
                 }
 
                 // Default is image
+                const isHeicImage = urlLower.includes(".heic") || urlLower.includes(".heif") || urlLower.startsWith("data:image/heic") || urlLower.startsWith("data:image/heif");
+                const imgSrc = isHeicImage ? viewUrl : ev.url;
+
                 return (
                   <a key={ev.id} href={viewUrl} target="_blank" rel="noreferrer" style={{ display: "block" }}>
                     <img 
-                      src={ev.url} 
+                      src={imgSrc} 
                       alt="Evidencia" 
                       style={{ width: "100%", height: "140px", objectFit: "cover", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-color)" }} 
                     />

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { createWentop } from "../actions/wentop";
+import { isHeicFile, convertHeicFileToJpeg } from "@/lib/heic-client";
 
 const OBSERVER_SECTORS = [
   "MASS",
@@ -87,27 +88,48 @@ export default function CreateWentop() {
     }
   }, [session, observerName]);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [isProcessingFiles, setIsProcessingFiles] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setFileError("");
     if (!e.target.files) return;
 
-    const newFiles = Array.from(e.target.files);
-    const combined = [...selectedFiles, ...newFiles];
+    const rawFiles = Array.from(e.target.files);
+    if (rawFiles.length === 0) return;
 
-    if (combined.length > 5) {
-      setFileError("Solo puedes adjuntar hasta un máximo de 5 archivos.");
-      return;
-    }
+    setIsProcessingFiles(true);
 
-    const MAX_SIZE = 10 * 1024 * 1024;
-    for (const f of newFiles) {
-      if (f.size > MAX_SIZE) {
-        setFileError(`El archivo "${f.name}" supera los 10 MB permitidos.`);
+    try {
+      const processedFiles: File[] = [];
+      for (const file of rawFiles) {
+        if (isHeicFile(file)) {
+          const converted = await convertHeicFileToJpeg(file);
+          processedFiles.push(converted);
+        } else {
+          processedFiles.push(file);
+        }
+      }
+
+      const combined = [...selectedFiles, ...processedFiles];
+
+      if (combined.length > 5) {
+        setFileError("Solo puedes adjuntar hasta un máximo de 5 archivos.");
         return;
       }
-    }
 
-    setSelectedFiles(combined);
+      const MAX_SIZE = 10 * 1024 * 1024;
+      for (const f of processedFiles) {
+        if (f.size > MAX_SIZE) {
+          setFileError(`El archivo "${f.name}" supera los 10 MB permitidos.`);
+          return;
+        }
+      }
+
+      setSelectedFiles(combined);
+    } finally {
+      setIsProcessingFiles(false);
+      e.target.value = "";
+    }
   };
 
   const removeFile = (indexToRemove: number) => {
@@ -115,6 +137,7 @@ export default function CreateWentop() {
   };
 
   const compressImage = async (file: File): Promise<File> => {
+    if (isHeicFile(file)) return file;
     if (!file.type.startsWith("image/")) return file;
     return new Promise((resolve) => {
       const reader = new FileReader();
@@ -483,7 +506,7 @@ export default function CreateWentop() {
           <div className="form-group">
             <label className="form-label">Evidencia (adjuntar archivo)</label>
             <p style={{ fontSize: "0.8rem", color: "var(--text-secondary)", margin: "0 0 10px" }}>
-              Sube hasta 5 archivos compatibles: PDF, document, image o video. El tamaño máximo es de 10 MB por archivo.
+              Sube hasta 5 archivos compatibles: imágenes (JPG, PNG, HEIC/iPhone), documentos (PDF, Word, Excel) o videos. Máximo 10 MB por archivo.
             </p>
 
             <div style={{
@@ -496,18 +519,25 @@ export default function CreateWentop() {
               <input 
                 type="file" 
                 multiple 
-                accept="image/*,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" 
+                accept="image/*,.heic,.heif,.HEIC,.HEIF,video/*,.pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt" 
                 style={{ display: "none" }} 
                 id="file-upload" 
+                disabled={isProcessingFiles}
                 onChange={handleFileChange}
               />
               <label 
                 htmlFor="file-upload" 
                 className="btn btn-secondary" 
-                style={{ cursor: "pointer", display: "inline-flex", alignItems: "center", gap: "8px" }}
+                style={{ cursor: isProcessingFiles ? "not-allowed" : "pointer", display: "inline-flex", alignItems: "center", gap: "8px", opacity: isProcessingFiles ? 0.6 : 1 }}
               >
-                📎 Seleccionar Archivos
+                {isProcessingFiles ? "⏳ Procesando archivo..." : "📎 Seleccionar Archivos"}
               </label>
+
+              {isProcessingFiles && (
+                <div style={{ marginTop: "10px", color: "var(--accent-blue)", fontSize: "0.85rem", fontWeight: "500" }}>
+                  🔄 Optimizando y convirtiendo imágenes para visualización...
+                </div>
+              )}
 
               {fileError && (
                 <div style={{ marginTop: "10px", color: "var(--accent-red)", fontSize: "0.85rem", fontWeight: "600" }}>

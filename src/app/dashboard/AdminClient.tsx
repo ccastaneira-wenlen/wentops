@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { grantAdminRole } from "../actions/admin";
 
@@ -38,15 +38,94 @@ export default function AdminClient({ wentops }: { wentops: any[] }) {
   const [isGranting, setIsGranting] = useState(false);
   const [grantMsg, setGrantMsg] = useState("");
   const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [filterStatus, setFilterStatus] = useState<"ALL" | "ABIERTA" | "CERRADA">("ALL");
-  const [filterSector, setFilterSector] = useState("ALL");
 
-  const sectors = ["ALL", ...Array.from(new Set(wentops.map(w => w.observedSector)))].sort();
-  const filtered = wentops.filter(w => {
-    const matchStatus = filterStatus === "ALL" || w.status === filterStatus;
-    const matchSector = filterSector === "ALL" || w.observedSector === filterSector;
-    return matchStatus && matchSector;
-  });
+  // Filtros solicitados
+  const [filterObservedSector, setFilterObservedSector] = useState("ALL");
+  const [filterObserverSector, setFilterObserverSector] = useState("ALL");
+  const [filterObserver, setFilterObserver] = useState("ALL");
+  const [filterStatus, setFilterStatus] = useState<"ALL" | "ABIERTA" | "CERRADA">("ALL");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Helper para sector al que pertenece el observador
+  const getEffectiveObserverSector = (w: any) => {
+    if (w.observerSector === "Otros" && w.observerSectorOther) {
+      return w.observerSectorOther;
+    }
+    return w.observerSector || "";
+  };
+
+  // Listados únicos para los dropdowns
+  const observedSectors = useMemo(() => {
+    return Array.from(
+      new Set(wentops.map(w => w.observedSector).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }, [wentops]);
+
+  const observerSectors = useMemo(() => {
+    const set = new Set<string>();
+    wentops.forEach(w => {
+      const s = getEffectiveObserverSector(w);
+      if (s) set.add(s);
+      if (w.observerSector && w.observerSector !== "Otros") set.add(w.observerSector);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }, [wentops]);
+
+  const observers = useMemo(() => {
+    return Array.from(
+      new Set(wentops.map(w => w.observerName).filter(Boolean))
+    ).sort((a, b) => a.localeCompare(b, "es", { sensitivity: "base" }));
+  }, [wentops]);
+
+  // Filtrado combinado
+  const filtered = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    return wentops.filter(w => {
+      const matchStatus = filterStatus === "ALL" || w.status === filterStatus;
+      const matchObservedSector = filterObservedSector === "ALL" || w.observedSector === filterObservedSector;
+      const effectiveObserverSector = getEffectiveObserverSector(w);
+      const matchObserverSector =
+        filterObserverSector === "ALL" ||
+        effectiveObserverSector === filterObserverSector ||
+        w.observerSector === filterObserverSector;
+      const matchObserver = filterObserver === "ALL" || w.observerName === filterObserver;
+
+      const matchQuery =
+        !q ||
+        (w.observerName && w.observerName.toLowerCase().includes(q)) ||
+        (w.place && w.place.toLowerCase().includes(q)) ||
+        (w.client && w.client.toLowerCase().includes(q)) ||
+        (w.description && w.description.toLowerCase().includes(q)) ||
+        `#${w.id}`.includes(q);
+
+      return matchStatus && matchObservedSector && matchObserverSector && matchObserver && matchQuery;
+    });
+  }, [wentops, filterStatus, filterObservedSector, filterObserverSector, filterObserver, searchQuery]);
+
+  // Contabilización en tiempo real
+  const totalFiltered = filtered.length;
+  const openFiltered = filtered.filter(w => w.status === "ABIERTA").length;
+  const closedFiltered = filtered.filter(w => w.status === "CERRADA").length;
+  const ratedFiltered = filtered.filter(w => w.rating);
+  const avgFilteredRating =
+    ratedFiltered.length > 0
+      ? (ratedFiltered.reduce((sum, w) => sum + (w.rating || 0), 0) / ratedFiltered.length).toFixed(1)
+      : "—";
+
+  const isFiltered =
+    filterStatus !== "ALL" ||
+    filterObservedSector !== "ALL" ||
+    filterObserverSector !== "ALL" ||
+    filterObserver !== "ALL" ||
+    searchQuery.trim() !== "";
+
+  const handleResetFilters = () => {
+    setFilterStatus("ALL");
+    setFilterObservedSector("ALL");
+    setFilterObserverSector("ALL");
+    setFilterObserver("ALL");
+    setSearchQuery("");
+  };
 
   const handleGrantAdmin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -66,20 +145,24 @@ export default function AdminClient({ wentops }: { wentops: any[] }) {
 
   return (
     <>
-      {/* Top action bar */}
-      <div style={{ display: "flex", gap: "16px", marginBottom: "24px", flexWrap: "wrap" }}>
-        {/* Grant admin panel */}
-        <div className="glass-card" style={{ flex: "1", minWidth: "300px", padding: "20px" }}>
-          <h3 style={{ fontSize: "1rem", marginBottom: "12px", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            🔑 Otorgar Acceso Administrador
-          </h3>
-          <form onSubmit={handleGrantAdmin} style={{ display: "flex", gap: "10px", alignItems: "flex-end" }}>
-            <div style={{ flex: 1 }}>
-              <label className="form-label" style={{ fontSize: "0.8rem" }}>DNI del usuario</label>
+      {/* Top action bar: Grant admin panel */}
+      <div style={{ marginBottom: "20px" }}>
+        <div className="glass-card" style={{ padding: "18px 20px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "12px", marginBottom: "12px" }}>
+            <h3 style={{ fontSize: "0.95rem", color: "var(--text-secondary)", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.05em", margin: 0 }}>
+              🔑 Otorgar Acceso Administrador
+            </h3>
+            <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+              Asigna permisos de administrador a un empleado ingresando su DNI
+            </span>
+          </div>
+          <form onSubmit={handleGrantAdmin} style={{ display: "flex", gap: "10px", alignItems: "flex-end", flexWrap: "wrap", maxWidth: "600px" }}>
+            <div style={{ flex: "1", minWidth: "220px" }}>
+              <label className="form-label" style={{ fontSize: "0.8rem", marginBottom: "4px" }}>DNI del usuario</label>
               <input type="text" name="dni" className="form-input" placeholder="Ej: 33532816" required style={{ padding: "8px 12px" }} />
             </div>
-            <button type="submit" className="btn btn-primary" disabled={isGranting} style={{ padding: "8px 16px", whiteSpace: "nowrap" }}>
-              {isGranting ? "..." : "Dar Permiso"}
+            <button type="submit" className="btn btn-primary" disabled={isGranting} style={{ padding: "8px 18px", whiteSpace: "nowrap" }}>
+              {isGranting ? "Procesando..." : "Dar Permiso"}
             </button>
           </form>
           {grantMsg && (
@@ -88,45 +171,268 @@ export default function AdminClient({ wentops }: { wentops: any[] }) {
             </p>
           )}
         </div>
+      </div>
 
-        {/* Quick filters */}
-        <div className="glass-card" style={{ flex: "1", minWidth: "300px", padding: "20px" }}>
-          <h3 style={{ fontSize: "1rem", marginBottom: "12px", color: "var(--text-secondary)", fontWeight: "600", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-            🔍 Filtros
-          </h3>
-          <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
-            <div style={{ flex: 1, minWidth: "120px" }}>
-              <label className="form-label" style={{ fontSize: "0.8rem" }}>Estado</label>
-              <select
-                className="form-select"
-                value={filterStatus}
-                onChange={e => setFilterStatus(e.target.value as any)}
-                style={{ padding: "8px 12px" }}
-              >
-                <option value="ALL">Todos</option>
-                <option value="ABIERTA">Abiertos</option>
-                <option value="CERRADA">Cerrados</option>
-              </select>
+      {/* Main Filter and Live Counting Card */}
+      <div className="glass-card" style={{ padding: "24px", marginBottom: "24px" }}>
+        {/* Header con botón de reset si hay filtros */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px" }}>
+          <div>
+            <h3 style={{ fontSize: "1.1rem", fontWeight: "800", margin: 0, display: "flex", alignItems: "center", gap: "8px" }}>
+              🔍 Filtros y Contabilización
+            </h3>
+            <p style={{ fontSize: "0.82rem", color: "var(--text-secondary)", marginTop: "4px", margin: 0 }}>
+              Filtra por Sector Observado, Sector al que pertenece y Observador con conteo en tiempo real.
+            </p>
+          </div>
+          {isFiltered && (
+            <button
+              onClick={handleResetFilters}
+              className="btn btn-secondary"
+              style={{
+                padding: "6px 14px",
+                fontSize: "0.8rem",
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "6px",
+                borderColor: "rgba(230,0,0,0.4)",
+                color: "var(--accent-red)",
+              }}
+            >
+              ✕ Restablecer Filtros
+            </button>
+          )}
+        </div>
+
+        {/* Filters Grid */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))",
+          gap: "14px",
+          alignItems: "flex-end"
+        }}>
+          {/* 1. Sector Observado */}
+          <div>
+            <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+              🎯 Sector Observado
+            </label>
+            <select
+              className="form-select"
+              value={filterObservedSector}
+              onChange={e => setFilterObservedSector(e.target.value)}
+              style={{ padding: "8px 12px", width: "100%", fontSize: "0.85rem" }}
+            >
+              <option value="ALL">Todos los sectores observados ({observedSectors.length})</option>
+              {observedSectors.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 2. Sector al que pertenece */}
+          <div>
+            <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+              🏢 Sector al que pertenece
+            </label>
+            <select
+              className="form-select"
+              value={filterObserverSector}
+              onChange={e => setFilterObserverSector(e.target.value)}
+              style={{ padding: "8px 12px", width: "100%", fontSize: "0.85rem" }}
+            >
+              <option value="ALL">Todos los sectores de pertenencia ({observerSectors.length})</option>
+              {observerSectors.map(s => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 3. Observador */}
+          <div>
+            <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+              👤 Observador
+            </label>
+            <select
+              className="form-select"
+              value={filterObserver}
+              onChange={e => setFilterObserver(e.target.value)}
+              style={{ padding: "8px 12px", width: "100%", fontSize: "0.85rem" }}
+            >
+              <option value="ALL">Todos los observadores ({observers.length})</option>
+              {observers.map(o => (
+                <option key={o} value={o}>{o}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* 4. Estado */}
+          <div>
+            <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+              📌 Estado
+            </label>
+            <select
+              className="form-select"
+              value={filterStatus}
+              onChange={e => setFilterStatus(e.target.value as any)}
+              style={{ padding: "8px 12px", width: "100%", fontSize: "0.85rem" }}
+            >
+              <option value="ALL">Todos los estados</option>
+              <option value="ABIERTA">Abiertas</option>
+              <option value="CERRADA">Cerradas</option>
+            </select>
+          </div>
+
+          {/* 5. Búsqueda libre */}
+          <div>
+            <label className="form-label" style={{ fontSize: "0.8rem", fontWeight: "600", display: "flex", alignItems: "center", gap: "6px" }}>
+              🔎 Búsqueda rápida
+            </label>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="Pozo, cliente, ID, texto..."
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              style={{ padding: "8px 12px", width: "100%", fontSize: "0.85rem" }}
+            />
+          </div>
+        </div>
+
+        {/* Live Counters (Contabilización del Total y Métricas) */}
+        <div style={{
+          marginTop: "20px",
+          paddingTop: "18px",
+          borderTop: "1px solid var(--border-light)",
+        }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "12px" }}>
+            {/* Total Contabilizado */}
+            <div style={{
+              background: "rgba(230, 0, 0, 0.08)",
+              border: "1px solid rgba(230, 0, 0, 0.3)",
+              borderRadius: "var(--radius-md)",
+              padding: "12px 14px",
+            }}>
+              <div style={{ fontSize: "1.7rem", fontWeight: "800", color: "var(--accent-red)", lineHeight: 1 }}>
+                {totalFiltered}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "6px", fontWeight: "600" }}>
+                Total Contabilizado
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: "140px" }}>
-              <label className="form-label" style={{ fontSize: "0.8rem" }}>Sector</label>
-              <select
-                className="form-select"
-                value={filterSector}
-                onChange={e => setFilterSector(e.target.value)}
-                style={{ padding: "8px 12px" }}
-              >
-                {sectors.map(s => <option key={s} value={s}>{s === "ALL" ? "Todos" : s}</option>)}
-              </select>
+
+            {/* Abiertas */}
+            <div style={{
+              background: "rgba(255, 77, 77, 0.08)",
+              border: "1px solid rgba(255, 77, 77, 0.25)",
+              borderRadius: "var(--radius-md)",
+              padding: "12px 14px",
+            }}>
+              <div style={{ fontSize: "1.7rem", fontWeight: "800", color: "#ff4d4d", lineHeight: 1 }}>
+                {openFiltered}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "6px", fontWeight: "600" }}>
+                Abiertas
+              </div>
+            </div>
+
+            {/* Cerradas */}
+            <div style={{
+              background: "rgba(0, 204, 102, 0.08)",
+              border: "1px solid rgba(0, 204, 102, 0.25)",
+              borderRadius: "var(--radius-md)",
+              padding: "12px 14px",
+            }}>
+              <div style={{ fontSize: "1.7rem", fontWeight: "800", color: "var(--success)", lineHeight: 1 }}>
+                {closedFiltered}
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "6px", fontWeight: "600" }}>
+                Cerradas
+              </div>
+            </div>
+
+            {/* Valoración Media */}
+            <div style={{
+              background: "rgba(255, 204, 0, 0.08)",
+              border: "1px solid rgba(255, 204, 0, 0.25)",
+              borderRadius: "var(--radius-md)",
+              padding: "12px 14px",
+            }}>
+              <div style={{ fontSize: "1.7rem", fontWeight: "800", color: "var(--warning)", lineHeight: 1 }}>
+                {avgFilteredRating} <span style={{ fontSize: "1.1rem" }}>★</span>
+              </div>
+              <div style={{ fontSize: "0.72rem", color: "var(--text-secondary)", textTransform: "uppercase", letterSpacing: "0.05em", marginTop: "6px", fontWeight: "600" }}>
+                Valoración Media
+              </div>
             </div>
           </div>
+
+          {/* Indicador detallado cuando hay filtros aplicados */}
+          {isFiltered && (
+            <div style={{
+              marginTop: "14px",
+              padding: "10px 14px",
+              borderRadius: "var(--radius-md)",
+              background: "rgba(255, 255, 255, 0.03)",
+              border: "1px solid var(--border-light)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "8px",
+            }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
+                <span style={{ fontSize: "0.85rem", fontWeight: "700", color: "var(--text-primary)" }}>
+                  📊 Total según filtros:
+                </span>
+                <span style={{
+                  background: "var(--accent-red)",
+                  color: "#fff",
+                  padding: "2px 8px",
+                  borderRadius: "12px",
+                  fontSize: "0.8rem",
+                  fontWeight: "700",
+                }}>
+                  {totalFiltered} {totalFiltered === 1 ? "tarjeta" : "tarjetas"} ({totalFiltered > 0 ? ((totalFiltered / wentops.length) * 100).toFixed(0) : 0}% del total general)
+                </span>
+                <span style={{ fontSize: "0.8rem", color: "var(--text-secondary)" }}>
+                  Filtros activos:
+                </span>
+                {filterObservedSector !== "ALL" && (
+                  <span className="badge" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid var(--border-color)", fontSize: "0.72rem" }}>
+                    Sector Obs: <strong>{filterObservedSector}</strong>
+                  </span>
+                )}
+                {filterObserverSector !== "ALL" && (
+                  <span className="badge" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid var(--border-color)", fontSize: "0.72rem" }}>
+                    Sector Pertenencia: <strong>{filterObserverSector}</strong>
+                  </span>
+                )}
+                {filterObserver !== "ALL" && (
+                  <span className="badge" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid var(--border-color)", fontSize: "0.72rem" }}>
+                    Observador: <strong>{filterObserver}</strong>
+                  </span>
+                )}
+                {filterStatus !== "ALL" && (
+                  <span className="badge" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid var(--border-color)", fontSize: "0.72rem" }}>
+                    Estado: <strong>{filterStatus}</strong>
+                  </span>
+                )}
+                {searchQuery.trim() !== "" && (
+                  <span className="badge" style={{ background: "rgba(255,255,255,0.06)", border: "1px solid var(--border-color)", fontSize: "0.72rem" }}>
+                    Texto: <strong>"{searchQuery}"</strong>
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Results count + Export */}
       <div style={{ marginBottom: "12px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
         <div style={{ color: "var(--text-secondary)", fontSize: "0.9rem" }}>
-          Mostrando <strong style={{ color: "var(--text-primary)" }}>{filtered.length}</strong> de {wentops.length} tarjetas
+          Mostrando <strong style={{ color: "var(--text-primary)" }}>{totalFiltered}</strong> de {wentops.length} tarjetas
+          {isFiltered && <span style={{ color: "var(--accent-red)", marginLeft: "6px" }}>(filtros activos)</span>}
         </div>
         <a
           href="/api/admin/export-excel"
@@ -150,15 +456,30 @@ export default function AdminClient({ wentops }: { wentops: any[] }) {
           onMouseEnter={e => (e.currentTarget.style.opacity = "0.85")}
           onMouseLeave={e => (e.currentTarget.style.opacity = "1")}
         >
-          📊 Exportar a Excel
+          📊 Exportar Todas (Excel)
         </a>
       </div>
 
       {/* Desktop table */}
       <div className="glass-card" style={{ padding: 0, overflow: "hidden" }}>
-        {filtered.length === 0 ? (
-          <div style={{ padding: "48px", textAlign: "center", color: "var(--text-secondary)" }}>
-            No hay tarjetas que coincidan con los filtros seleccionados.
+        {totalFiltered === 0 ? (
+          <div style={{ padding: "48px 20px", textAlign: "center", color: "var(--text-secondary)" }}>
+            <div style={{ fontSize: "2rem", marginBottom: "8px" }}>🔍</div>
+            <div style={{ fontSize: "1.05rem", fontWeight: "700", color: "var(--text-primary)", marginBottom: "4px" }}>
+              No hay tarjetas que coincidan con los filtros seleccionados
+            </div>
+            <div style={{ fontSize: "0.85rem", marginBottom: "16px" }}>
+              Total contabilizado: <strong>0 tarjetas</strong>. Prueba cambiando o restableciendo los filtros.
+            </div>
+            {isFiltered && (
+              <button
+                onClick={handleResetFilters}
+                className="btn btn-secondary"
+                style={{ padding: "8px 18px", fontSize: "0.85rem" }}
+              >
+                Restablecer todos los filtros
+              </button>
+            )}
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>

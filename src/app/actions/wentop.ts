@@ -4,6 +4,27 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { revalidatePath } from "next/cache";
+import { isHeic, convertHeicBufferToJpeg } from "@/lib/heic-server";
+
+async function processUploadedEvidence(file: File): Promise<string> {
+  let buffer: Buffer<any> = Buffer.from(await file.arrayBuffer());
+  let mimeType = file.type || "application/octet-stream";
+  let fileName = file.name;
+
+  if (isHeic(fileName, mimeType)) {
+    try {
+      buffer = await convertHeicBufferToJpeg(buffer);
+      mimeType = "image/jpeg";
+      fileName = fileName.replace(/\.(heic|heif)$/i, ".jpg");
+    } catch (err) {
+      console.error("Error converting HEIC file on server:", err);
+    }
+  }
+
+  const base64 = buffer.toString("base64");
+  const cleanName = encodeURIComponent(fileName);
+  return `data:${mimeType};name=${cleanName};base64,${base64}`;
+}
 
 export async function createWentop(formData: FormData) {
   try {
@@ -94,11 +115,7 @@ export async function createWentop(formData: FormData) {
 
     if (files.length > 0) {
       for (const file of files) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const base64 = buffer.toString("base64");
-        const mimeType = file.type || "application/octet-stream";
-        const cleanName = encodeURIComponent(file.name);
-        const dataUrl = `data:${mimeType};name=${cleanName};base64,${base64}`;
+        const dataUrl = await processUploadedEvidence(file);
 
         await prisma.evidence.create({
           data: {
@@ -221,11 +238,7 @@ export async function updateWentop(formData: FormData) {
 
     if (files.length > 0) {
       for (const file of files) {
-        const buffer = Buffer.from(await file.arrayBuffer());
-        const base64 = buffer.toString("base64");
-        const mimeType = file.type || "application/octet-stream";
-        const cleanName = encodeURIComponent(file.name);
-        const dataUrl = `data:${mimeType};name=${cleanName};base64,${base64}`;
+        const dataUrl = await processUploadedEvidence(file);
 
         await prisma.evidence.create({
           data: {

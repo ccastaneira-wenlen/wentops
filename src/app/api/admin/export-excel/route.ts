@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import * as XLSX from "xlsx";
 import fs from "fs";
 import path from "path";
+import { convertHeicBufferToJpeg } from "@/lib/heic-server";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -107,8 +108,16 @@ export async function GET(request: Request) {
         if (ev.url.startsWith("data:image/")) {
           const base64Data = ev.url.split(",")[1];
           const extMatch = ev.url.match(/data:image\/([^;]+)/);
-          const ext = extMatch ? extMatch[1] : "png";
-          const imgBuffer = Buffer.from(base64Data, "base64");
+          let ext = extMatch ? extMatch[1] : "png";
+          let imgBuffer: Buffer<any> = Buffer.from(base64Data, "base64");
+          if (ext.includes("heic") || ext.includes("heif")) {
+            try {
+              imgBuffer = await convertHeicBufferToJpeg(imgBuffer);
+              ext = "jpeg";
+            } catch {
+              // skip
+            }
+          }
           imageBuffers.push({ row: rowIndex, col: 5, buf: imgBuffer, ext });
         } else {
           const filePath = path.join(process.cwd(), "public", ev.url);
